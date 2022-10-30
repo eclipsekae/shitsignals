@@ -1,5 +1,7 @@
 import logging
 
+import httpx
+import orjson
 from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
@@ -28,7 +30,15 @@ async def help_command(update: Update, context) -> None:
 
 async def echo(update: Update, context) -> None:
     """Echo the user message."""
-    await update.message.reply_text(update.message.text)
+    logger.info("Received message: %s", update.message.text)
+    received_text = update.message.text
+    async with httpx.AsyncClient() as client:
+        response = await client.post('https://pelevin.gpt.dobro.ai/generate/',
+                                     json={"prompt": f"Ты, пидор ебаный, говоришь мне: {received_text}. Мой ответ тебе мразь: ", "length": 60},
+                                     timeout=60000)
+    logger.info(response)
+    data = orjson.loads(response.content)
+    await update.message.reply_text(data["replies"][0])
 
 
 def main() -> None:
